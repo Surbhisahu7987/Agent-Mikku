@@ -1,53 +1,66 @@
 import os
 from dotenv import load_dotenv
 from langchain_mcp_adapters.client import MultiServerMCPClient
-
+from utils.logger import logger
 load_dotenv()
 
 class SwiggyMCPManager:
-    _instance = None
+    # _instance = None
     
     # Caches for initialized tools
     _instamart_tools = None
-    _food_tools = None
+    _swiggy_tools = None
+    TOKEN = os.getenv("SWIGGY_BUILDERS_TOKEN")
+    HEADERS = {"Authorization": f"Bearer {TOKEN}"} if TOKEN else {
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(SwiggyMCPManager, cls).__new__(cls)
-            # Initialize shared config
-            cls.TOKEN = os.getenv("SWIGGY_BUILDERS_TOKEN")
-            cls.HEADERS = {"Authorization": f"Bearer {cls.TOKEN}"} if cls.TOKEN else {}
-        return cls._instance
-
-    async def get_instamart_tools(self):
+    }
+    # def __new__(cls):
+    #     if cls._instance is None:
+    #         cls._instance = super(SwiggyMCPManager, cls).__new__(cls)
+    #         # Initialize shared config
+            
+    #     return cls._instance
+    @classmethod
+    def get_instamart_tools(cls):
         """Fetches and caches Instamart tools."""
-        if self._instamart_tools is None:
+        if cls._instamart_tools is None:
             client = MultiServerMCPClient({
                 "instamart": {
                     "transport": "sse",
                     "url": os.environ.get("INSTAMART_MCP_URL", "https://mcp.swiggy.com/instamart/v1"),
-                    "headers": self.HEADERS
+                    "headers": cls.HEADERS
                 }
             })
-            self._instamart_tools = await client.get_tools()
-        return self._instamart_tools
 
-    async def get_food_delivery_tools(self):
-        """Fetches and caches Food Delivery tools."""
-        if self._food_tools is None:
+            try:
+                cls._instamart_tools = client.get_tools()
+                return cls._instamart_tools
+            except Exception as e:
+                logger.error(f"Error fetching Instamart tools: {e}")
+                raise e
+            
+    @classmethod
+    def get_swiggy_tools(cls):
+        """Fetches and caches Swiggy tools."""
+        if cls._swiggy_tools is None:
             client = MultiServerMCPClient({
                 "food": {
                     "transport": "sse",
-                    "url": os.environ.get("FOOD_DELIVERY_MCP_URL", "https://mcp.swiggy.com/food/v1"),
-                    "headers": self.HEADERS
+                    "url": os.environ.get("SWIGGY_MCP_URL", "https://mcp.swiggy.com/food/v1"),
+                    "headers": cls.HEADERS
                 }
             })
-            self._food_tools = await client.get_tools()
-        return self._food_tools
+            try:
+                cls._swiggy_tools = client.get_tools()
+            except Exception as e:
+                logger.error(f"Error fetching Swiggy tools: {e}")
+                raise e
+        return cls._swiggy_tools
 
-    def update_token(self, new_token: str):
+    @classmethod
+    def update_token(cls, new_token: str):
         """Wipe cache and update token if credentials change."""
-        self.TOKEN = new_token
-        self.HEADERS = {"Authorization": f"Bearer {self.TOKEN}"}
-        self._instamart_tools = None
-        self._food_tools = None
+        cls.TOKEN = new_token
+        cls.HEADERS = {"Authorization": f"Bearer {cls.TOKEN}"}
+        cls._instamart_tools = None
+        cls._swiggy_tools = None

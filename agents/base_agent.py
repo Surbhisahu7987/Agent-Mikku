@@ -7,6 +7,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import PromptTemplate
 from schema.agent_type import AgentType
 from swiggy_builder_agents.schema.model_provider import ModelProvider
+from tools.tools_registry import ToolRegistry
 from utils.logger import logger
 
 class BaseAgent(ABC):
@@ -16,24 +17,18 @@ class BaseAgent(ABC):
                  system_prompt: str | PromptTemplate,
                  agent_type: AgentType | None = None,
                  model_params: dict | None = None,
+                 agent_config: dict | None = None
                  ) -> None:
         
         self.agent_type = agent_type 
         self.model_name = model_name
         self.model_provider = model_provider
         self.model_params = model_params or {}
+        self.agent_config = agent_config or {}
         self.system_prompt = system_prompt
 
         # Retrieve the access token from the ModelProvider Enum
         self.access_token = model_provider.token
-
-        # Initialize tools based on the agent type
-        self.tools = self.get_tools(self.agent_type)
-
-        # Initialize the model and agent executor
-        self.model = self.init_model(self.model_name, self.model_provider, self.model_params)
-        self.agent_executor = self.init_agent(self.model)
-
     
     def init_model(self, 
                    model_name: str, 
@@ -64,8 +59,7 @@ class BaseAgent(ABC):
             logger.error(f"Error initializing model: {e}", exc_info=True)
             raise e
          
-
-    def init_agent(self, model: BaseChatModel, **kwargs):
+    def init_agent(self, model: BaseChatModel, agent_config: dict | None = None) -> Any:
         """
         This function is used to initialize the agent.
         """
@@ -73,7 +67,7 @@ class BaseAgent(ABC):
             agent = create_agent(model=model, 
                                 tools=self.tools,
                                 system_prompt=self.system_prompt, 
-                                **kwargs
+                                **(agent_config or self.agent_config)
                                 )
             return agent
         
@@ -81,12 +75,12 @@ class BaseAgent(ABC):
             logger.error(f"Error initializing agent: {e}", exc_info=True)
             raise e
     
-    @abstractmethod
-    def get_tools(self, agent_type: str) -> Sequence[Callable]:
+    def get_tools(self) -> list[Callable]:
         """
         This function is used to get the agent's tools.
         """
-        pass
+        return ToolRegistry.get_tools_for_agent(self.agent_type)
+    
     
     @abstractmethod
     def generate_response(self, query: str | PromptTemplate) -> Any:
@@ -94,7 +88,7 @@ class BaseAgent(ABC):
         This function is used to generate a response for a given query.
         """
         pass
-
+    
 class BaseStructuredAgent(BaseAgent):
 
     @abstractmethod
