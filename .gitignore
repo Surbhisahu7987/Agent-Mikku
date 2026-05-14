@@ -11,6 +11,10 @@ wheels/
 
 #env file
 .env
+
 assets/
 prompts/
-TODOgit a
+TODO
+
+#
+mcp_client/auth.py

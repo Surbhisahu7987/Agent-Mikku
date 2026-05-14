@@ -1,9 +1,10 @@
 from typing import Callable, List, Dict, Sequence
 from langchain_core.tools import BaseTool
 from schema.agent_type import AgentType
-from tools.master_agent_tools import verify_dish_identity, manage_instamart_order, manage_swiggy_order
-from tools.instamart_tools import search_items, get_recipe, check_inventory
-from tools.swiggy_tools import find_restaurants, get_menu, place_order
+from tools.master_agent_tools import  manage_instamart_order, manage_swiggy_order, get_state
+from tools.instamart_tools import search_ingredients_recipe
+from tools.swiggy_tools import (calculate_restaurant_utility_score, verify_order_feasibility,
+                                format_swiggy_response, )
 
 class ToolRegistry:
     """
@@ -14,17 +15,19 @@ class ToolRegistry:
     # The Mapping: One lookup to get all tools for an agent
     REGISTRY = {
         AgentType.INSTAMART: [
-            search_items, 
-            get_recipe, 
-            check_inventory
+            search_ingredients_recipe, 
+            # get_recipe, 
+            # check_inventory
         ],
         AgentType.SWIGGY: [
-            find_restaurants, 
-            get_menu, 
-            place_order
+            # calculate_restaurant_utility_score, 
+            # verify_order_feasibility, 
+            # format_swiggy_response,
         ],
         AgentType.MASTER: [
-            verify_dish_identity
+            manage_instamart_order,
+            manage_swiggy_order,
+            get_state
         ]
     }
 
