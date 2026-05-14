@@ -11,5 +11,6 @@ wheels/
 
 #env file
 .env
-data_corpus/
+assets/
+prompts/clear
 TODO
