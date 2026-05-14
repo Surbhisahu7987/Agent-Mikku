@@ -1,21 +1,26 @@
 import os
 from collections.abc import Sequence, Callable
+from async_lru import alru_cache
 from dotenv import load_dotenv
-from functools import cache
+from functools import lru_cache
+from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.prompts import PromptTemplate
-from agents.base_agent import BaseStructuredAgent
-from mcp_client import SwiggyMCPManager
+from agents.base_agent import BaseAgent
+from mcp_client.mcp_client import SwiggyMCPManager
 from schema.agent_type import AgentType
 from schema.model_provider import ModelProvider
-from prompts.instamart_subagent_prompt import instamart_agent_prompt
+from prompts.instamart_subagent_prompt import system_prompt as instamart_agent_prompt
+from utils.logger import logger
+
 load_dotenv()
 
-class InstaMartAgent(BaseStructuredAgent):
+class InstaMartAgent(BaseAgent):
     def __init__(self, model_name: str = "MasterOrchestratorModel",
                  model_provider: ModelProvider = ModelProvider.GOOGLE,
                  model_params: dict | None = None,
                  system_prompt: str | PromptTemplate = instamart_agent_prompt,
-                 agent_config: dict | None = None
+                 agent_config: dict | None = None,
+                 mcp_tools: list[Callable] | None = None
                  ):
         
         agent_type = AgentType.INSTAMART
@@ -29,46 +34,59 @@ class InstaMartAgent(BaseStructuredAgent):
         
         # Initialize tools based on the agent type
         self.tools = self.get_tools()
-
+        self.tools.extend(mcp_tools or [])  # Add MCP tools if provided
+        
         # Initialize the model and agent executor
         self.model = self.init_model(model_name=self.model_name, 
                                      model_provider=self.model_provider, 
                                      model_params=self.model_params)
         
         self.agent_executor = self.init_agent(model=self.model, 
+                                              
                                               agent_config=self.agent_config)
 
-    
-    def get_tools(self) -> list[Callable]:
+    @classmethod
+    async def get_mcp_tools(self) -> list[Callable]:
         """
         This function is used to get the instamartagent's tools.
         """
-        mcp_tools = SwiggyMCPManager.get_instamart_tools()
-        tools = super().get_tools()  # Get base tools if any
-        tools.extend(mcp_tools)  # Add MCP tools to the agent's toolset
+        mcp_tools = await SwiggyMCPManager.get_instamart_tools()
 
-        return tools
+        return mcp_tools
 
-    def generate_structured_response(self, request: str) -> str:
+    async def generate_response(self, request: str) -> str:
         """
         This function is used to generate a structured response for the given request.
         """
-        response = self.agent_executor.invoke(request)
-        return response
-    
+        inputs = {"messages": [{"role": "user", "content": request}]}
 
+        try:
+            print(f"Generating response for query: {request}")
+            with get_usage_metadata_callback() as callback:
+                
+                response = await self.agent_executor.ainvoke(inputs)
+                logger.info(callback.usage_metadata)
+                return response["messages"][-1].text
+        
+        except Exception as e:
+            logger.error(f"Error generating response: {e}", exc_info=True)
+        
 
+@alru_cache(maxsize=1)
+async def get_instamart_agent(model_params: dict | None = None, 
+                        agent_config: dict | None = None) -> InstaMartAgent:
+    """
+    Factory function to get a cached instance of the InstaMartAgent.
+    """
+    model_name = os.environ.get("INSTAMART_SUBAGENT_MODEL", "gpt-4")
+    model_provider = os.environ.get("INSTAMART_SUBAGENT_MODEL_PROVIDER", "google")
 
-# Lazy initialization prevents resource-heavy instantiation at import time.
-# This is more secure and efficient for production environments.
+    mcp_tools = await InstaMartAgent.get_mcp_tools()
 
-@cache
-def get_instamart_agent() -> InstaMartAgent:
-    return InstaMartAgent(
-        model_name="InstamartAgentModel",
-        model_provider=ModelProvider.GOOGLE,
-        model_params={"temperature": 0.7},
-        agent_config={}
-    )
-
+    return InstaMartAgent(model_name=model_name,
+                          model_provider=ModelProvider(model_provider),
+                          model_params=model_params,
+                          system_prompt=instamart_agent_prompt,
+                          agent_config=agent_config,
+                          mcp_tools=mcp_tools)
 
