@@ -24,6 +24,7 @@ dependencies = [
     "langchain-openai>=1.1.12",
     "langgraph>=1.1.6",
     "langgraph-checkpoint>=4.0.1",
+    "mlflow>=1.27.0",
     "pandas>=3.0.2",
     "pillow>=12.2.0",
     "pymupdf>=1.27.2.2",
