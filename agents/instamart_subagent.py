@@ -1,5 +1,11 @@
+"""
+This module defines the InstaMartAgent class, a specialized sub-agent responsible for 
+handling grocery, household items, and recipe-related queries using specific tools 
+and Model Context Protocol (MCP) integrations.
+"""
 import os
-from collections.abc import Sequence, Callable
+import mlflow
+from collections.abc import Callable
 from async_lru import alru_cache
 from dotenv import load_dotenv
 from functools import lru_cache
@@ -10,11 +16,21 @@ from mcp_client.mcp_client import SwiggyMCPManager
 from schema.agent_type import AgentType
 from schema.model_provider import ModelProvider
 from prompts.instamart_subagent_prompt import system_prompt as instamart_agent_prompt
+from utils.common import _deep_make_hashable, _deep_make_dict
 from utils.logger import logger
 
+
 load_dotenv()
+mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+mlflow.set_experiment(os.environ.get("IM_MLFLOW_EXP_NAME", "InstaMart Agent"))
+mlflow.langchain.autolog()
 
 class InstaMartAgent(BaseAgent):
+    """
+    A specialized agent for interacting with Instamart services.
+    It utilizes MCP tools for product search and cart management, and 
+    inherits base functionalities for model and agent initialization.
+    """
     def __init__(self, model_name: str = "MasterOrchestratorModel",
                  model_provider: ModelProvider = ModelProvider.GOOGLE,
                  model_params: dict | None = None,
@@ -22,7 +38,17 @@ class InstaMartAgent(BaseAgent):
                  agent_config: dict | None = None,
                  mcp_tools: list[Callable] | None = None
                  ):
-        
+        """
+        Initializes the InstaMartAgent with the required model and tool configurations.
+
+        Args:
+            model_name (str): Name of the model to be used. Defaults to "MasterOrchestratorModel".
+            model_provider (ModelProvider): The provider of the LLM. Defaults to ModelProvider.GOOGLE.
+            model_params (dict | None): Configuration parameters for the model. Defaults to None.
+            system_prompt (str | PromptTemplate): Persona/Instructions for the agent. Defaults to instamart_agent_prompt.
+            agent_config (dict | None): Execution configuration for the agent. Defaults to None.
+            mcp_tools (list[Callable] | None): Tools fetched via MCP. Defaults to None.
+        """
         agent_type = AgentType.INSTAMART
         
         super().__init__(model_name=model_name,
@@ -46,9 +72,12 @@ class InstaMartAgent(BaseAgent):
                                               agent_config=self.agent_config)
 
     @classmethod
-    async def get_mcp_tools(self) -> list[Callable]:
+    async def get_mcp_tools(cls) -> list[Callable]:
         """
-        This function is used to get the instamartagent's tools.
+        Retrieves the list of tools specific to Instamart from the MCP manager.
+
+        Returns:
+            list[Callable]: A list of tools available for Instamart operations.
         """
         mcp_tools = await SwiggyMCPManager.get_instamart_tools()
 
@@ -56,7 +85,13 @@ class InstaMartAgent(BaseAgent):
 
     async def generate_response(self, request: str) -> str:
         """
-        This function is used to generate a structured response for the given request.
+        Generates a response for a given Instamart-related user request.
+
+        Args:
+            request (str): The user query string.
+
+        Returns:
+            str: The agent's generated text response.
         """
         inputs = {"messages": [{"role": "user", "content": request}]}
 
@@ -72,16 +107,36 @@ class InstaMartAgent(BaseAgent):
             logger.error(f"Error generating response: {e}", exc_info=True)
         
 
-@alru_cache(maxsize=1)
 async def get_instamart_agent(model_params: dict | None = None, 
                         agent_config: dict | None = None) -> InstaMartAgent:
     """
-    Factory function to get a cached instance of the InstaMartAgent.
+    A factory function to create and cache an instance of the InstaMartAgent.
+    Handles dictionary-to-hashable conversion to prevent caching errors.
+
+    Args:
+        model_params (dict | None): Model specific parameters. Defaults to None.
+        agent_config (dict | None): Agent specific configuration. Defaults to None.
+
+    Returns:
+        InstaMartAgent: A cached instance of the InstaMartAgent.
     """
+    params_key = _deep_make_hashable(model_params) if model_params else None
+    config_key = _deep_make_hashable(agent_config) if agent_config else None
+    
+    return await _get_instamart_agent_cached(params_key, config_key)
+
+@alru_cache(maxsize=1)
+async def _get_instamart_agent_cached(params_key: frozenset | None, 
+                                     config_key: frozenset | None) -> InstaMartAgent:
+    """Internal cached factory logic."""
     model_name = os.environ.get("INSTAMART_SUBAGENT_MODEL", "gpt-4")
     model_provider = os.environ.get("INSTAMART_SUBAGENT_MODEL_PROVIDER", "google")
 
     mcp_tools = await InstaMartAgent.get_mcp_tools()
+
+    # Reconstruct original structure for the constructor
+    model_params = _deep_make_dict(params_key) if params_key else None
+    agent_config = _deep_make_dict(config_key) if config_key else None
 
     return InstaMartAgent(model_name=model_name,
                           model_provider=ModelProvider(model_provider),
@@ -89,4 +144,3 @@ async def get_instamart_agent(model_params: dict | None = None,
                           system_prompt=instamart_agent_prompt,
                           agent_config=agent_config,
                           mcp_tools=mcp_tools)
-
