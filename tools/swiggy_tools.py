@@ -1,11 +1,25 @@
+"""
+This module provides specialized tools for the Swiggy Food sub-agent.
+It includes utilities for ranking restaurants based on service quality metrics,
+validating order constraints, and formatting final responses for the user.
+"""
 from langchain.tools import tool
 
-@tool
 def calculate_restaurant_utility_score(restaurants: list[dict]) -> list[dict]:
     """
-    Calculates a utility score for each restaurant based on:
-    Score = (Rating * 0.5) + (Time_Inverse * 0.3) + (Price_Inverse * 0.2).
-    Returns the restaurants sorted by highest score.
+    Calculates a multi-criteria utility score for a list of restaurants.
+    
+    The score is weighted as follows:
+    - Rating: 50%
+    - Delivery Time: 30% (Inverse: faster is better)
+    - Average Price: 20% (Inverse: cheaper is better)
+
+    Args:
+        restaurants (list[dict]): A list of restaurant dictionaries containing 
+            'rating', 'delivery_time', and 'avg_price'.
+
+    Returns:
+        list[dict]: The top 5 restaurants sorted by their calculated utility_score in descending order.
     """
     scored_list = []
     for res in restaurants:
@@ -29,9 +43,18 @@ def calculate_restaurant_utility_score(restaurants: list[dict]) -> list[dict]:
 @tool
 def verify_order_feasibility(cart_total: float, availability_status: str) -> dict:
     """
-    Checks if the order complies with Swiggy Builders Club v1 constraints:
+    Validates if an order meets the specific business constraints of the Swiggy ecosystem:
     - Max Order: ₹1000
     - Restaurant must be OPEN
+
+    Args:
+        cart_total (float): The total monetary value of the items in the cart.
+        availability_status (str): The current operational status of the restaurant (e.g., 'OPEN').
+
+    Returns:
+        dict: A dictionary containing:
+            - feasible (bool): True if the order can proceed, False otherwise.
+            - reason (str, optional): A description of the failure if not feasible.
     """
     if availability_status.upper() != "OPEN":
         return {"feasible": False, "reason": "Restaurant is currently closed."}
@@ -45,14 +68,19 @@ def verify_order_feasibility(cart_total: float, availability_status: str) -> dic
 @tool
 def format_swiggy_response(restaurants: list[dict]):
     """
-    Transforms the top 5 restaurants into a clean, readable string 
-    formatted for the Swiggy Agent to show the user.
+    Converts a list of restaurant data into a user-friendly text summary.
+
+    Args:
+        restaurants (list[dict]): A list of restaurant objects to be displayed.
+
+    Returns:
+        str: A formatted string listing the restaurant names, ratings, and delivery times.
     """
 
     formatted = "Here are some restaurants that can deliver your dish:\n"
 
-    for rest in restaurants:
+    for restaurant in restaurants:
 
-        formatted += f"- {rest['name']} (Rating: {rest['rating']}, Delivery Time: {rest['delivery_time']} mins)\n"
+        formatted += f"- {restaurant['name']} (Rating: {restaurant['rating']}, Delivery Time: {restaurant['delivery_time']} mins)\n"
 
     return formatted

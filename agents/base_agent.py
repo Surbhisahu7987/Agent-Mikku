@@ -1,3 +1,8 @@
+"""
+This module defines the abstract base classes for AI agents in the Swiggy Builder ecosystem.
+It provides foundational logic for model initialization, agent orchestration, 
+tool management via the ToolRegistry, and response generation handling.
+"""
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -17,6 +22,11 @@ from utils.logger import logger
 load_dotenv()
 
 class BaseAgent(ABC):
+    """
+    Abstract base class for all agents.
+    Encapsulates common attributes and methods for initializing language models
+     and creating agent executors with specific tools and configurations.
+    """
     def __init__(self, 
                  model_name: str, 
                  model_provider: ModelProvider,
@@ -27,7 +37,19 @@ class BaseAgent(ABC):
                  mcp_tools: list[Callable] | None = None,
                  cache_system_prompt: bool = True
                  ) -> None:
-        
+        """
+        Initializes the BaseAgent with model and provider configurations.
+
+        Args:
+            model_name (str): The name/ID of the language model (e.g., 'gpt-4o').
+            model_provider (ModelProvider): The provider service (e.g., GOOGLE, OPENAI).
+            system_prompt (str | PromptTemplate): The system instructions defining the agent's behavior.
+            agent_type (AgentType): The functional type of the agent (e.g., MASTER, SWIGGY).
+            model_params (dict | None, optional): Additional parameters for the LLM. Defaults to None.
+            agent_config (dict | None, optional): Configuration for the LangChain agent/graph. Defaults to None.
+            mcp_tools (list[Callable] | None, optional): Tools provided via MCP. Defaults to None.
+            cache_system_prompt (bool, optional): Whether to enable prompt caching if supported. Defaults to True.
+        """
         self.agent_type = agent_type 
         self.model_name = model_name
         self.model_provider = model_provider
@@ -37,7 +59,6 @@ class BaseAgent(ABC):
         self.cache_system_prompt = cache_system_prompt
         self.cache = None # Placeholder for caching mechanism if needed
         self.mcp_tools = mcp_tools or []
-
         # Retrieve the access token from the ModelProvider Enum
         # self.access_token = model_provider.token
     
@@ -47,7 +68,15 @@ class BaseAgent(ABC):
                    model_params: dict
                    ) -> BaseChatModel:
         """
-        This function is used to initialize the model.
+        Initializes the chat model using the specified provider and parameters.
+
+        Args:
+            model_name (str): The specific model version to load.
+            model_provider (ModelProvider): The backend provider to use.
+            model_params (dict): Configuration overrides (temperature, max_tokens, etc.).
+
+        Returns:
+            BaseChatModel: An initialized LangChain chat model instance.
         """
         logger.info(f"Initializing model for {self.agent_type.value} agent.")
 
@@ -57,6 +86,7 @@ class BaseAgent(ABC):
         "top_p": 0.9,
         "seed": 42,
         "max_tokens": os.environ.get("MAX_TOKENS", 1000),
+        "max_retries": 3, 
         # "thinking_level": "low"
     }
         model_params = {**defaults, **model_params}
@@ -77,7 +107,14 @@ class BaseAgent(ABC):
          
     def init_agent(self, model: BaseChatModel, agent_config: dict | None = None) -> Any:
         """
-        This function is used to initialize the agent.
+        Initializes the agent executor or workflow for the specific agent type.
+
+        Args:
+            model (BaseChatModel): The language model to power the agent.
+            agent_config (dict | None, optional): Runtime configuration for the agent. Defaults to None.
+
+        Returns:
+            Any: The initialized agent executor or graph.
         """
         try:
             agent = create_agent(model=model, 
@@ -95,7 +132,10 @@ class BaseAgent(ABC):
         
     def get_tools(self) -> list[Callable]:
         """
-        This function is used to get the agent's tools.
+        Retrieves the tools associated with the agent's type from the ToolRegistry.
+
+        Returns:
+            list[Callable]: A list of callable tools available to the agent.
         """
         logger.info(f"Initializing tools for {self.agent_type.value} agent.")
         try:
@@ -108,13 +148,14 @@ class BaseAgent(ABC):
     
     async def generate_response(self, query: str | dict ) -> Any:
         """
-        This function is used to generate a response for a given query.
+        Asynchronously generates a response for a user query by streaming agent steps.
+
+        Args:
+            query (str | dict): The user input or state dictionary to process.
+
+        Returns:
+            Any: The text content of the final AI message if successful.
         """
-        """
-        Generate a response using the agent executor.
-        """
-        
-        
         try:
             async for step in self.agent_executor.astream({"messages": [{"role": "user", "content": query}]},
                                                           config={"configurable": {"thread_id": "1"}}
@@ -137,11 +178,19 @@ class BaseAgent(ABC):
 
     
 class BaseStructuredAgent(BaseAgent):
-
+    """
+    A base class for agents that must produce output conforming to a specific schema.
+    """
     @abstractmethod
     def generate_structured_response(self, query: str | PromptTemplate):
         """
-        This function is used to generate a structured response for a given query.
+        Abstract method to generate a schema-conforming response.
+
+        Args:
+            query (str | PromptTemplate): The input prompt or template used for generation.
+
+        Returns:
+            The structured data output as defined by the implementing class.
         """
         pass 
         

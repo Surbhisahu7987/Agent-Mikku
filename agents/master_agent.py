@@ -1,3 +1,8 @@
+"""
+This module defines the MasterAgent class, which serves as the central orchestrator
+in the Swiggy Builder ecosystem. It is responsible for analyzing user intent,
+managing delivery context, and routing requests to specialized sub-agents.
+"""
 import os
 from collections.abc import Callable
 from dotenv import load_dotenv
@@ -14,6 +19,11 @@ from utils.logger import logger
 load_dotenv()
 
 class MasterAgent(BaseAgent):
+    """
+    The MasterAgent acts as the primary interface and decision-maker.
+    It coordinates between various tools and sub-agents to fulfill complex user
+    requests related to food delivery and grocery shopping.
+    """
     def __init__(self, 
                  model_name: str,
                  model_provider: ModelProvider = ModelProvider.GOOGLE,
@@ -22,7 +32,17 @@ class MasterAgent(BaseAgent):
                  system_prompt: str | PromptTemplate = master_agent_prompt,
                  agent_config: dict | None = None
                  ):
-        
+        """
+        Initializes the MasterAgent with orchestration-specific configurations.
+
+        Args:
+            model_name (str): The name/ID of the language model to use.
+            model_provider (ModelProvider): The provider service. Defaults to ModelProvider.GOOGLE.
+            model_params (dict | None): Optional parameters for the LLM. Defaults to None.
+            agent_type (AgentType): The functional type, fixed to MASTER for this class.
+            system_prompt (str | PromptTemplate): The core instructions for the orchestrator.
+            agent_config (dict | None): Configuration for the LangGraph/LangChain execution.
+        """
         super().__init__(model_name=model_name,
                          model_provider=model_provider,
                          agent_type=agent_type,
@@ -54,34 +74,10 @@ class MasterAgent(BaseAgent):
         # with open("agent_workflow.png", "wb") as f:
         #     f.write(image_data)
 
-    async def call_node(self, state: dict):
-        """
-        Orchestrator node logic. SRP: Encapsulates how the Master Agent 
-        processes state and decides on tools.
-        """
-        model_with_tools = self.model.bind_tools(self.tools)
-        
-        sys_prompt = self.system_prompt
-        if hasattr(sys_prompt, "template"):
-            sys_prompt = sys_prompt.template
-            
-        messages = [SystemMessage(content=str(sys_prompt))] + state["messages"]
-        
-        logger.info(f"Invoking {self.agent_type.value} model.")
-        response = await model_with_tools.ainvoke(messages)
-        
-        return {"messages": [response]}
-
-    # def get_tools(self) -> list[Callable]:
-    #     """
-    #     Retrieve tools for the Master Agent.
-    #     """
-    #     logger.info(f"Retrieving tools for {self.agent_type.value} agent.")
-    #     # return [add_numbers]
-    #     return super().get_tools()
-
-    
 async def main():
+    """
+    Main entry point for testing the MasterAgent's response generation independently.
+    """
     model_name = os.environ.get("MASTER_AGENT_MODEL", "gpt-4")
     model_provider = os.environ.get("MASTER_AGENT_MODEL_PROVIDER", "google_genai")
     master_agent = MasterAgent(model_name=model_name,
