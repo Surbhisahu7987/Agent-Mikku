@@ -3,7 +3,7 @@ Utility module containing common functions for data transformation,
 serialization, and hashing.
 """
 
-def _deep_make_hashable(obj):
+def deep_make_hashable(obj):
     """Recursively converts unhashable dictionaries and lists into frozensets 
     and tuples.
 
@@ -15,12 +15,12 @@ def _deep_make_hashable(obj):
             tuple for lists).
     """
     if isinstance(obj, dict):
-        return frozenset((k, _deep_make_hashable(v)) for k, v in obj.items())
+        return frozenset((k, deep_make_hashable(v)) for k, v in obj.items())
     if isinstance(obj, list):
-        return tuple(_deep_make_hashable(i) for i in obj)
+        return tuple(deep_make_hashable(i) for i in obj)
     return obj
 
-def _deep_make_dict(obj):
+def deep_make_dict(obj):
     """Recursively converts frozensets and tuples back into dictionaries and lists.
 
     Args:
@@ -30,9 +30,9 @@ def _deep_make_dict(obj):
         Any: The reconstructed dictionary or list structure.
     """
     if isinstance(obj, frozenset):
-        return {k: _deep_make_dict(v) for k, v in obj}
+        return {k: deep_make_dict(v) for k, v in obj}
     if isinstance(obj, tuple):
         # Distinguish between actual tuples and converted lists if necessary; 
         # for configs, converting all to lists is generally safe.
-        return [_deep_make_dict(i) for i in obj]
+        return [deep_make_dict(i) for i in obj]
     return obj

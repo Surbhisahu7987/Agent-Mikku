@@ -4,18 +4,20 @@ handling restaurant discovery, menu matching, and food delivery logistics
 using the Swiggy Food service integrations.
 """
 import os
-import mlflow
 from collections.abc import Callable
+from typing import override
+import mlflow
 from async_lru import alru_cache
 from dotenv import load_dotenv
 from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.prompts import PromptTemplate
+
 from agents.base_agent import BaseAgent
 from mcp_client.mcp_client import SwiggyMCPManager
 from schema.agent_type import AgentType
 from schema.model_provider import ModelProvider
 from prompts.swiggy_subagent_prompt import system_prompt as swiggy_subagent_prompt
-from utils.common import _deep_make_hashable, _deep_make_dict
+from utils.common import deep_make_hashable, deep_make_dict
 from utils.logger import logger
 
 load_dotenv()
@@ -83,6 +85,7 @@ class SwiggyAgent(BaseAgent):
         
         return mcp_tools
 
+    @override
     async def generate_response(self, request: str) -> str:
         """
         Generates a response for a food delivery or restaurant-related request.
@@ -96,7 +99,7 @@ class SwiggyAgent(BaseAgent):
         inputs = {"messages": [{"role": "user", "content": request}]}
 
         try:
-            print(f"Generating response for query: {request}")
+            logger.info(f"Generating response for query: {request}")
             with get_usage_metadata_callback() as callback:
                 response = await self.agent_executor.ainvoke(inputs)
                 logger.info(callback.usage_metadata)
@@ -120,8 +123,8 @@ async def get_swiggy_agent(model_params: dict | None = None,
     Returns:
         SwiggyAgent: A cached instance of the SwiggyAgent.
     """
-    params_key = _deep_make_hashable(model_params) if model_params else None
-    config_key = _deep_make_hashable(agent_config) if agent_config else None
+    params_key = deep_make_hashable(model_params) if model_params else None
+    config_key = deep_make_hashable(agent_config) if agent_config else None
     
     return await _get_swiggy_agent_cached(params_key, config_key)
 
@@ -141,8 +144,8 @@ async def _get_swiggy_agent_cached(params_key: frozenset | None,
     model_params = dict(params_key) if params_key else None
     agent_config = dict(config_key) if config_key else None
     # Reconstruct original dictionary structure
-    model_params = _deep_make_dict(params_key) if params_key else None
-    agent_config = _deep_make_dict(config_key) if config_key else None
+    model_params = deep_make_dict(params_key) if params_key else None
+    agent_config = deep_make_dict(config_key) if config_key else None
 
     return SwiggyAgent(model_name=model_name,
                        model_provider=ModelProvider(model_provider),
