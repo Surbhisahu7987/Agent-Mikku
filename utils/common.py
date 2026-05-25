@@ -2,6 +2,7 @@
 Utility module containing common functions for data transformation, 
 serialization, and hashing.
 """
+import os
 
 def deep_make_hashable(obj):
     """Recursively converts unhashable dictionaries and lists into frozensets 
@@ -36,3 +37,15 @@ def deep_make_dict(obj):
         # for configs, converting all to lists is generally safe.
         return [deep_make_dict(i) for i in obj]
     return obj
+
+def get_db_uri():
+
+    username = os.environ.get("POSTGRES_USER")
+    host = os.environ.get("POSTGRES_HOST")
+    port = os.environ.get("POSTGRES_PORT")
+    password = os.environ.get("POSTGRES_PASSWORD")
+    db = os.environ.get("POSTGRES_DB")
+
+    db_uri = f"postgresql://{username}:{password}@{host}:{port}/{db}"
+
+    return db_uri
