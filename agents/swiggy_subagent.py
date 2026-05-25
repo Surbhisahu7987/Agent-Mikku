@@ -109,7 +109,6 @@ class SwiggyAgent(BaseAgent):
             logger.error(f"Error generating response: {e}", exc_info=True)
         
     
-@alru_cache(maxsize=1)
 async def get_swiggy_agent(model_params: dict | None = None,
                      agent_config: dict | None = None) -> SwiggyAgent:
     """
