@@ -146,7 +146,8 @@ class BaseAgent(ABC):
             raise e
         return tools
     
-    async def generate_response(self, query: str | dict ) -> Any:
+    async def generate_response(self, query: str | dict,
+                                thread_id: str = "1") -> Any:
         """
         Asynchronously generates a response for a user query by streaming agent steps.
 
@@ -158,7 +159,7 @@ class BaseAgent(ABC):
         """
         try:
             async for step in self.agent_executor.astream({"messages": [{"role": "user", "content": query}]},
-                                                          config={"configurable": {"thread_id": "1"}}
+                                                          config={"configurable": {"thread_id": thread_id}}
                                                           ):
                     
                 for update in step.values():
