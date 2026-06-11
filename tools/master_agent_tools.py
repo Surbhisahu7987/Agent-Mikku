@@ -3,8 +3,10 @@ This module provides tools for the Master Orchestrator Agent to manage high-leve
 It includes tools for resolving delivery addresses, formatting menu cards, 
 and delegating complex tasks to specialized sub-agents.
 """
+from typing import Union
 from langchain.tools import tool
 from langgraph.prebuilt.tool_node import ToolRuntime
+from state.states import DeliveryContext, ProductInfo
 from utils.logger import logger
 
 @tool
@@ -100,6 +102,9 @@ async def manage_swiggy_order(request: str) -> str:
     model_params= {
             "max_retries": 3
         }
+    agent_config = {
+        "response_format": Union[list[DeliveryContext], list[ProductInfo]]
+    }
     try:
         agent = await get_swiggy_agent(model_params=model_params)
         response = await agent.generate_response(request)
@@ -108,13 +113,3 @@ async def manage_swiggy_order(request: str) -> str:
         logger.error(f"Error occurred while initializing Swiggy agent: {e}")
         raise e
 
-@tool
-async def get_state(runtime: ToolRuntime) -> str:
-    """ 
-    This tool retrieves the current state of the ToolRuntime.
-    Useful for debugging or inspecting the execution context within the agent's workflow.
-    Returns:
-        str: The current state representation from the ToolRuntime.
-
-    """
-    return runtime.state

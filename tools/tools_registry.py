@@ -6,7 +6,7 @@ ensuring that each agent has access only to its permitted capabilities.
 from typing import Callable, List, Dict, Sequence
 from langchain_core.tools import BaseTool
 from schema.agent_type import AgentType
-from tools.master_agent_tools import  manage_instamart_order, manage_swiggy_order, get_state
+from tools.master_agent_tools import  manage_instamart_order, manage_swiggy_order
 from tools.instamart_tools import search_ingredients_recipe
 from tools.swiggy_tools import (verify_order_feasibility,
                                 format_swiggy_response, )
@@ -29,7 +29,6 @@ class ToolRegistry:
         AgentType.MASTER: [
             manage_instamart_order,
             manage_swiggy_order,
-            get_state
         ]
     }
 

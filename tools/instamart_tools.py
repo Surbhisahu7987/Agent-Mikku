@@ -17,7 +17,7 @@ def format_recipe_response(recipe):
 @tool
 def search_ingredients_recipe(query: str) -> str:
     '''
-    This tool provides a simple interface to search for recipes based on ingredients.
+    This tool provides a simple interface to search for recipes based on dish name.
     Args:
         query (str): Name of dish for which ingredients or recipes you need to search for.
     Returns:
