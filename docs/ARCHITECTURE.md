@@ -1,6 +1,6 @@
-# System Architecture: Swiggy Builder Agents ("Agent Chhotu")
+# System Architecture: Agent Chhotu ("Agent Chhotu")
 
-Welcome to the **Swiggy Builder Agents** repository. This document is structured across **four progressive levels of verbosity** so that any engineer—whether reading for 60 seconds or conducting a deep code walkthrough—can rapidly understand the design decisions, component lifecycles, and implementation mechanics.
+Welcome to the **Agent Chhotu** repository. This document is structured across **four progressive levels of verbosity** so that any engineer—whether reading for 60 seconds or conducting a deep code walkthrough—can rapidly understand the design decisions, component lifecycles, and implementation mechanics.
 
 ---
 
@@ -15,7 +15,7 @@ Welcome to the **Swiggy Builder Agents** repository. This document is structured
 ## Level 1: The Birds-Eye View (60-Second Onboarding)
 
 ### What is this project?
-**Swiggy Builder Agents** (internally referred to as **Agent Chhotu**) is a multimodal, hierarchical multi-agent conversational commerce assistant. It acts as a smart concierge across food delivery and quick-commerce grocery shopping.
+**Agent Chhotu** (internally referred to as **Agent Chhotu**) is a multimodal, hierarchical multi-agent conversational commerce assistant. It acts as a smart concierge across food delivery and quick-commerce grocery shopping.
 
 Users can converse via text or upload images of dishes. The system determines the user's culinary intent:
 - **"Order In" (Swiggy Food)**: Recommends restaurants, inspects menus, calculates multi-criteria utility scores (rating, delivery time, price), checks order constraints, and verifies delivery addresses.

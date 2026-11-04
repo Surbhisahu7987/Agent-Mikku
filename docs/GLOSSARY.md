@@ -1,6 +1,6 @@
-# Glossary of Terms: Swiggy Builder Agents ("Agent Chhotu")
+# Glossary of Terms: Agent Chhotu ("Agent Chhotu")
 
-This glossary defines the domain terminology, architectural patterns, schemas, and framework concepts utilized across the **Swiggy Builder Agents** codebase.
+This glossary defines the domain terminology, architectural patterns, schemas, and framework concepts utilized across the **Agent Chhotu** codebase.
 
 ---
 
