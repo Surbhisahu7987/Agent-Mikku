@@ -59,7 +59,7 @@ class CustomAgentState(TypedDict):
 
     # 2. Visual/Input Identification
     identified_food: IdentifiedFood
-    instamart_prod: List[ProductInfo]
+    instamart_prod: list[ProductInfo]
 
     # 3. User Intent & Delivery Context
     order_mode: Literal["make", "order", "none"]
