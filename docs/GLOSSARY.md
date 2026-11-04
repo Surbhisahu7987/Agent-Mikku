@@ -1,4 +1,4 @@
-# Glossary of Terms: Agent Chhotu ("Agent Chhotu")
+# Glossary of Terms: Agent Chhotu 
 
 This glossary defines the domain terminology, architectural patterns, schemas, and framework concepts utilized across the **Agent Chhotu** codebase.
 

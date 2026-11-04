@@ -1,4 +1,4 @@
-# System Architecture: Agent Chhotu ("Agent Chhotu")
+# System Architecture: Agent Chhotu 
 
 Welcome to the **Agent Chhotu** repository. This document is structured across **four progressive levels of verbosity** so that any engineer—whether reading for 60 seconds or conducting a deep code walkthrough—can rapidly understand the design decisions, component lifecycles, and implementation mechanics.
 
